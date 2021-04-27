@@ -1,10 +1,65 @@
 const db = require("../models");
+const bcrypt = require('bcrypt');
 const Tutorial = db.tutorials;
-const products = db.products;
+const users = db.users;
 const Op = db.Sequelize.Op;
+
+
+exports.login = (req, res) => {
+	let username = req.body.username;
+	let password = req.body.password;
+
+	//~ username = username.toLowerCase();
+
+	console.log(req.body);
+
+	users.findAll({ where: { username: username } })
+    .then(data => {
+			console.log(data[0].pswrd);
+		  bcrypt.compare(password,data[0].pswrd,(berr,verified) => {
+				if(verified){
+					req.session.userID = data[0].id;
+					 req.session.auth = true;
+					res.status(200).send({
+						 success:true,
+						 username:username
+					  });
+				}else{
+					res.json({ success:false});
+				}
+				console.log("Login:", req.session);
+			});
+    })
+    .catch(err => {
+		res.json({ success:false ,msg: 'username or password not correct' });
+	});
+	/*
+	if(req.body.username == 'sezer'){
+		res.json({ success: true });
+	}
+	res.json({ success:false ,msg: 'username or password not correct' });*/
+};
+
+exports.isLoggedIn = (req, res) => {
+	//~ req.session.sometest = 21;
+	console.log("isLoggedIn:", req.session);
+
+	if( (!req.session.userID == 0) && (req.session.auth)){
+		res.status(200).send({
+			success:true
+		  });
+		return;
+	}else{
+		res.status(200).send({
+			 success:false
+		  });
+		return;
+	}
+}
 
 // Create and Save a new Tutorial
 exports.create = (req, res) => {
+	console.log("create:", req.session);
   // Validate request
   if (!req.body.title) {
     res.status(400).send({
@@ -35,6 +90,10 @@ exports.create = (req, res) => {
 
 // Retrieve all Tutorials from the database.
 exports.findAll = (req, res) => {
+
+
+	console.log("findAll:", req.session);
+
   const title = req.query.title;
   var condition = title ? { title: { [Op.like]: `%${title}%` } } : null;
 
@@ -51,8 +110,9 @@ exports.findAll = (req, res) => {
 };
 // Find a single Tutorial with an id
 exports.findOne = (req, res) => {
+	console.log("findOne:", req.session);
   const id = req.params.id;
-
+	console.log(req.session);
   Tutorial.findByPk(id)
     .then(data => {
       res.send(data);
@@ -66,6 +126,7 @@ exports.findOne = (req, res) => {
 
 // Update a Tutorial by the id in the request
 exports.update = (req, res) => {
+  console.log("update:", req.session);
   const id = req.params.id;
 
   Tutorial.update(req.body, {
@@ -90,6 +151,7 @@ exports.update = (req, res) => {
 };
 // Delete a Tutorial with the specified id in the request
 exports.delete = (req, res) => {
+	 console.log("delete:", req.session);
   const id = req.params.id;
 
   Tutorial.destroy({
